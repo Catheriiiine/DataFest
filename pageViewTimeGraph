@@ -1,0 +1,70 @@
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def compute_averages_and_combine():
+    # Initialize empty lists to store the computed averages
+    correctness_averages = []
+    engaged_time_averages = []
+    df = pd.read_csv('page.csv')
+    # Iterate over page names from "1." to "16."
+    for i in range(1, 17):
+        # Construct the page name pattern
+        page_name = f"{i}."
+
+        # Find subset of data matching the page name pattern
+        subset = df[df['page'].str.startswith(page_name)]
+        print(subset)
+
+        # Compute average correctness and average engaged time for each group
+        for group in ['Fast Reader', 'Average Reader', 'Slow Reader']:
+            group_data = subset[subset['engagement_category'] == group]
+            print(str(i))
+            print(group)
+            print(group_data)
+
+            # Compute average correctness and average engaged time, ignoring null values
+            correctness_avg = group_data['avg_correct_rate'].mean(skipna=True)
+            engaged_time_avg = group_data['avg_engaged_time'].mean(skipna=True)
+
+            # Append the averages to the corresponding lists
+            correctness_averages.append(correctness_avg)
+            engaged_time_averages.append(engaged_time_avg)
+
+    new_df = pd.DataFrame({
+        'Chapter': ['Chapter' + str(i) for i in range(1, 17) for _ in range(3)],
+        'Group': ['Fast Reader', 'Average Reader', 'Slow Reader'] * 16,
+        'Correctness_Average': correctness_averages,
+        'Engaged_Time_Average': engaged_time_averages
+    })
+
+    return new_df
+
+
+if __name__ == '__main__':
+    result_df = compute_averages_and_combine()
+    # i want to
+    print(result_df)
+
+    # Sort the DataFrame by the 'Chapter' column
+    result_df['Chapter'] = result_df['Chapter'].str.extract('(\d+)').astype(int)
+    result_df = result_df.sort_values('Chapter')
+
+    # Reorder the columns in the DataFrame
+    result_df['Group'] = pd.Categorical(result_df['Group'], categories= ['Fast Reader', 'Average Reader', 'Slow Reader'], ordered=True)
+    result_df = result_df.sort_values('Group')
+
+    result_df['Chapter'] = result_df['Chapter'].apply(lambda x: f'Chapter {x:02}')
+
+    pivot_df = result_df.pivot(index='Chapter', columns='Group', values='Correctness_Average')
+
+    # Plot the graph
+    pivot_df.plot(kind='bar', color=['aqua', 'gold', 'green'], figsize=(12, 3))
+    plt.xlabel('Chapter')
+    plt.ylabel('Average Correctness')
+    plt.title('Average Correctness by Chapter and Reader Group')
+    plt.xticks(rotation=45, ha='right')
+    plt.legend(title='Group', fontsize='small',loc='upper left', bbox_to_anchor=(1.02, 1))
+    plt.tight_layout()
+    plt.show()
